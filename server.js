@@ -4,7 +4,9 @@ const port = 4000;
 const db=require('./db.js');
 const bodyParser=require("body-parser");
 app.use(bodyParser.json());
-const userRoutes = require('./routes/userRoutes');
+app.use('/uploads', express.static('uploads'));
+
+const userRoutes = require('./routes/userRoute');
 
 
 app.use('/api/users', userRoutes);

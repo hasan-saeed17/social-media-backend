@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
     username: { type: String, required: true, unique: true },
     type: { type: String, enum: ["admin", "user"], default: "user", required: true },
-    name: { type: String, required: true },
+    name: { type: String, default: "" },
     password: { type: String, required: true },
     bio: { type: String },
     profilePic: { type: String },
@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
     followers: { type: [String], default: [] },
     following: { type: [String], default: [] },
     posts: { type: [String], default: [] }
-}, { collections: "users" });
+}, { collection: "users" });
 
 userSchema.pre('save', async function (next) {
     const person = this;
