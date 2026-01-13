@@ -32,11 +32,25 @@ router.get("/profiles/all", async (req, res) => {
     }
 });
 
-//search user
+//search user by id
 router.get("/profile/search/:id", async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findOne({ id: userId }).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error" + err.message });
+    }
+});
+
+//search user by username
+router.get("/profile/search/:username", async (req, res) => {
+    try {
+        const username = req.params.username;
+        const user = await User.findOne({ username: username }).select('-password');
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
