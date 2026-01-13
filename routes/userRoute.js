@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const auth = require("./../auth.js");
 const User = require("./../models/userSchema.js");
 
 
@@ -17,11 +18,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-
-
-
 //see all users
-router.get("/all", async (req, res) => {
+router.get("/profiles/all", async (req, res) => {
     try {
         const users = await User.find({});
         if (users.length === 0) {
@@ -31,6 +29,20 @@ router.get("/all", async (req, res) => {
         res.status(200).json(users);
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+//search user
+router.get("/profile/search/:id", async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findOne({ id: userId });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error" + err.message });
     }
 });
 
@@ -61,7 +73,10 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
 });
 
 //update profile
-router.put("/update/:id", upload.single("profilePic"), async (req, res) => {
+router.put("/update/:id", auth, upload.single("profilePic"), async (req, res) => {
+    if (req.user.role !== 'user' && req.user.id !== req.params.id) {
+        return res.status(403).json({ message: "You can update only your profile" });
+    }
     try {
         const userId = req.params.id;
         const updates = req.body;
@@ -95,6 +110,48 @@ router.put("/update/:id", upload.single("profilePic"), async (req, res) => {
     }
 });
 
+//deleting user
+router.delete("/delete/:id",auth, async (req, res) => {
+    if (req.user.role !==admin || req.user.role !== 'user' && req.user.id !== req.params.id) {
+        return res.status(403).json({ message: "You can delete only your profile" });
+    }
+    try {
+        const userId = req.params.id;
+        if (!userId) {
+            return res.status(400).json({ message: "User ID is required" });
+        }
+        const deletedUser = await User.findOneAndDelete({ id: userId });
+        if (!deletedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ message: "User deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error" + err.message });
+    }
+});
 
+//user login
+router.post("/login", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username: username });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Invalid credentials.' });
+        }
+        const payload = {
+            id: user.id,
+            role: user.role,
+            username: user.username
+        }
+        const token = jwt.sign(payload, 'lalala1122');
+        res.json({ token: token });
+    } catch (err) {
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
 
 module.exports = router;
