@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
     profilePic: { type: String },
     gender: { type: String, enum: ["male", "female"] },
     age: { type: Number },
-    interests: { type: [String], enum: ["comedy", "sports", "fashion", "business"] },
+    interests: [{ type: String, enum: ["comedy", "sports", "fashion", "business", "tech"] }],
     followers: { type: [String], default: [] },
     following: { type: [String], default: [] },
     posts: { type: [String], default: [] }
