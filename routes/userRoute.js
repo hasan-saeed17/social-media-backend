@@ -171,10 +171,10 @@ router.delete("/delete/:id",auth, async (req, res) => {
 //follow user
 router.put("/follow/:id", auth, async (req, res) => {
     if(req.user.id === req.params.id){
-        return res.status(400).json({ message: "You cannot follow yourself" });
+        return res.status(400).json({ message: "You cannot follow yourself.. :( " });
     }
     if(req.user.role !== 'user'){
-        return res.status(403).json({ message: "Only users can follow others, Guests and Admins are not allowed" });
+        return res.status(403).json({ message: "Only users can follow others, Guests and Admins are not allowed.. :| " });
     }
     try {
         const userIdToFollow = req.params.id;
@@ -198,10 +198,10 @@ router.put("/follow/:id", auth, async (req, res) => {
 //unfollow user
 router.put("/unfollow/:id", auth, async (req, res) => {
     if(req.user.id === req.params.id){
-        return res.status(400).json({ message: "You cannot unfollow yourself" });
+        return res.status(400).json({ message: "You cannot unfollow yourself.. :( " });
     }
     if(req.user.role !== 'user'){
-        return res.status(403).json({ message: "Only users can unfollow others, Guests and Admins are not allowed" });
+        return res.status(403).json({ message: "Only users can unfollow others, Guests and Admins are not allowed.. :| " });
     }
     try {
         const userIdToUnfollow = req.params.id;
