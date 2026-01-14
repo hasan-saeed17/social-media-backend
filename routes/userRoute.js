@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const auth = require("./../auth.js");
 const User = require("./../models/userSchema.js");
 
@@ -33,7 +34,7 @@ router.get("/profiles/all", async (req, res) => {
 });
 
 //search user by id
-router.get("/profile/search/:id", async (req, res) => {
+router.get("/profile/id/:id", async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findOne({ id: userId }).select('-password');
@@ -47,7 +48,7 @@ router.get("/profile/search/:id", async (req, res) => {
 });
 
 //search user by username
-router.get("/profile/search/:username", async (req, res) => {
+router.get("/profile/username/:username", async (req, res) => {
     try {
         const username = req.params.username;
         const user = await User.findOne({ username: username }).select('-password');
@@ -104,9 +105,9 @@ router.post("/login", async (req, res) => {
             username: user.username
         }
         const token = jwt.sign(payload, 'lalala1122');
-        res.cookie('token', token, { httpOnly: true , secure: false});
-        res.json({ message: 'Login successful.'});
-        
+        res.cookie('token', token, { httpOnly: true, secure: false });
+        res.json({ message: 'Login successful.' });
+
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
     }
@@ -161,9 +162,9 @@ router.put("/update/:id", auth, upload.single("profilePic"), async (req, res) =>
 });
 
 //deleting user
-router.delete("/delete/:id",auth, async (req, res) => {
-    if (req.user.role !=='admin' || req.user.role !== 'user' && req.user.id !== req.params.id) {
-        return res.status(403).json({ message: "You can delete only your profile" });
+router.delete("/delete/:id", auth, async (req, res) => {
+    if (req.user.role === 'user' && req.user.id !== req.params.id) {
+        return res.status(403).json({ message: "You can delete only your own profile" });
     }
     try {
         const userId = req.params.id;
@@ -182,10 +183,10 @@ router.delete("/delete/:id",auth, async (req, res) => {
 
 //follow user
 router.put("/follow/:id", auth, async (req, res) => {
-    if(req.user.id === req.params.id){
+    if (req.user.id === req.params.id) {
         return res.status(400).json({ message: "You cannot follow yourself.. :( " });
     }
-    if(req.user.role !== 'user'){
+    if (req.user.role !== 'user') {
         return res.status(403).json({ message: "Only users can follow others, Guests and Admins are not allowed.. :| " });
     }
     try {
@@ -209,10 +210,10 @@ router.put("/follow/:id", auth, async (req, res) => {
 
 //unfollow user
 router.put("/unfollow/:id", auth, async (req, res) => {
-    if(req.user.id === req.params.id){
+    if (req.user.id === req.params.id) {
         return res.status(400).json({ message: "You cannot unfollow yourself.. :( " });
     }
-    if(req.user.role !== 'user'){
+    if (req.user.role !== 'user') {
         return res.status(403).json({ message: "Only users can unfollow others, Guests and Admins are not allowed.. :| " });
     }
     try {
