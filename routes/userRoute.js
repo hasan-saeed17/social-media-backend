@@ -96,7 +96,7 @@ router.post("/login", async (req, res) => {
         }
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: 'Invalid credentials.' });
+            return res.status(401).json({ error: 'Invalid password.' });
         }
         const payload = {
             id: user.id,
@@ -104,9 +104,21 @@ router.post("/login", async (req, res) => {
             username: user.username
         }
         const token = jwt.sign(payload, 'lalala1122');
-        res.json({ token: token });
+        res.cookie('token', token, { httpOnly: true , secure: false});
+        res.json({ message: 'Login successful.'});
+        
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+//user logout
+router.post("/logout", auth, async (req, res) => {
+    try {
+        res.clearCookie('token');
+        res.status(200).json({ message: "Logout successful." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
