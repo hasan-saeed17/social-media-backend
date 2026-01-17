@@ -6,9 +6,10 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ["admin", "user"], default: "user", required: true },
     name: { type: String, default: "" },
     password: { type: String, required: true },
+    email: { type: String, unique: true },
     bio: { type: String },
     profilePic: { type: String },
-    gender: { type: String, enum: ["male", "female"] },
+    gender: { type: String, enum: ["male", "female"], default: "male" },
     age: { type: Number },
     interests: [{ type: String, enum: ["comedy", "sports", "fashion", "business", "tech"] }],
     followers: { type: [String], default: [] },
@@ -16,17 +17,16 @@ const userSchema = new mongoose.Schema({
     posts: { type: [String], default: [] }
 }, { collection: "users" });
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     const person = this;
     if (!person.isModified('password')) {
-        return next();
+        return;
     }
     try {
         const hashedPassword = await bcrypt.hash(person.password, 10);
         person.password = hashedPassword;
-        next();
     } catch (err) {
-        return next(err);
+        return;
     }
 });
 

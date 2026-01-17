@@ -61,7 +61,7 @@ router.get("/profile/username/:username", async (req, res) => {
     }
 });
 
-//signin
+//signup
 router.post("/register", upload.single("profilePic"), async (req, res) => {
     try {
         const data = req.body;
@@ -121,6 +121,32 @@ router.post("/logout", auth, async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// reset password
+router.put("/reset-password/:id", auth, async (req, res) => {
+  try {
+    if (req.user.id !== req.params.id) {
+      return res.status(403).json({ message: "You can reset only your password" });
+    }
+    const { oldpassword, newpassword } = req.body;
+    if (!oldpassword || !newpassword) {
+      return res.status(400).json({message: "Old password and new password are required"});
+    }
+    const user = await User.findOne({ id: req.params.id });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const isMatch = await bcrypt.compare(oldpassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Old password is incorrect" });
+    }
+    user.password = newpassword;
+    await user.save();
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 //update profile
@@ -234,5 +260,6 @@ router.put("/unfollow/:id", auth, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 module.exports = router;
