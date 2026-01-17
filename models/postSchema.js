@@ -7,23 +7,23 @@ const postSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
-    type: {type:String, enum:["sports","political","fashion","business","technology","health"], required:true},
-    
-    contentType: {type:String, enum:["image","text"], required:true},
-    content: {type:String, required:true},
+    type: { type: String, enum: ["comedy", "sports", "fashion", "business", "tech"], required: true },
+
+    contentType: { type: String, enum: ["image", "text"], required: true },
+    content: { type: String, required: true },
 
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        ref: "User"
     }],
-}, 
-{ 
-    collection: "posts", 
-    timestamps: {
-        createdAt: "datePosted",
-        updatedAt: "dateUpdated"
-    } 
-});
+},
+    {
+        collection: "posts",
+        timestamps: {
+            createdAt: "datePosted",
+            updatedAt: "dateUpdated"
+        }
+    });
 
 const Post = mongoose.model("Post", postSchema);
 module.exports = Post;

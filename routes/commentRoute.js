@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Comment = require("../models/commentSchema");
 const auth = require("./../auth.js");
+
+
 // write a comment
 router.post("/add", auth, async (req, res) => {
   try {
