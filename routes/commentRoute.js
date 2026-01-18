@@ -12,7 +12,7 @@ router.post("/add", auth, async (req, res) => {
     const comment = new Comment({
       description,
       postId,
-      userId: req.user.id,
+      userId: req.user.id.toString(), 
     });
 
     await comment.save();
