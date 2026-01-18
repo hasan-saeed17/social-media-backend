@@ -4,17 +4,22 @@ const port = 4000;
 const db = require('./db.js');
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
-const commentRoute = require('./routes/commentRoute.js')
 
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use('/uploads', express.static('uploads'));
 
 const userRoutes = require('./routes/userRoute');
+const commentRoute = require('./routes/commentRoute.js')
+const postRoutes = require('./routes/postRoutes')
+
 
 
 app.use('/api/users', userRoutes);
 app.use("/comment", commentRoute);
+app.use('/posts', postRoutes)
+
+
 app.listen(port, () => {
     console.log(`Express Server is up and running on port ${port}`)
 })
