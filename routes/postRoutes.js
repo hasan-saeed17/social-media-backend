@@ -293,7 +293,4 @@ router.post('/:postId/unlike', auth, async (req, res) => {
 
 })
 
-
-
-
 module.exports = router;

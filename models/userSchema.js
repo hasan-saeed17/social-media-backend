@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const userSchema = new mongoose.Schema({
-    id: { type: String, required: true, unique: true },
     username: { type: String, required: true, unique: true },
     role: { type: String, enum: ["admin", "user"], default: "user", required: true },
     name: { type: String, default: "" },
@@ -12,9 +11,9 @@ const userSchema = new mongoose.Schema({
     gender: { type: String, enum: ["male", "female"], default: "male" },
     age: { type: Number },
     interests: [{ type: String, enum: ["comedy", "sports", "fashion", "business", "tech"] }],
-    followers: { type: [String], default: [] },
-    following: { type: [String], default: [] },
-    posts: { type: [String], default: [] }
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    posts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }]
 }, { collection: "users" });
 
 userSchema.pre('save', async function () {

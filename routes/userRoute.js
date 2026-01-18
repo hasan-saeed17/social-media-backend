@@ -36,14 +36,13 @@ router.get("/profiles/all", async (req, res) => {
 //search user by id
 router.get("/profile/id/:id", async (req, res) => {
     try {
-        const userId = req.params.id;
-        const user = await User.findOne({ id: userId }).select('-password');
+        const user = await User.findById(req.params.id).select("-password");
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
         res.status(200).json(user);
     } catch (err) {
-        res.status(500).json({ message: "Internal server error" + err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -68,8 +67,8 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
         if (!data) {
             return res.status(400).json({ message: "Please enter user data" });
         }
-        if (!data.id || !data.username || !data.password) {
-            return res.status(400).json({ message: "ID, username and password are required" });
+        if (!data.username || !data.password) {
+            return res.status(400).json({ message: "Username and password are required" });
         }
         const newUser = new User({
             ...data,
@@ -81,7 +80,7 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
 
     } catch (err) {
         if (err.code === 11000) {
-            return res.status(409).json({ message: "User already exists" });
+            return res.status(409).json({ message: "User already exists" + err.message });
         }
         res.status(500).json({ error: "Internal server error" + err.message });
     }
@@ -100,7 +99,7 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ error: 'Invalid password.' });
         }
         const payload = {
-            id: user.id,
+            id: user._id,
             role: user.role,
             username: user.username
         }
@@ -125,33 +124,34 @@ router.post("/logout", auth, async (req, res) => {
 
 // reset password
 router.put("/reset-password/:id", auth, async (req, res) => {
-  try {
-    if (req.user.id !== req.params.id) {
-      return res.status(403).json({ message: "You can reset only your password" });
+    try {
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({ message: "You can reset only your password" });
+        }
+
+        const { oldpassword, newpassword } = req.body;
+        const user = await User.findById(req.params.id);
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const isMatch = await bcrypt.compare(oldpassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Old password incorrect" });
+        }
+
+        user.password = newpassword; // pre-save hook hashes
+        await user.save();
+
+        res.status(200).json({ message: "Password reset successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-    const { oldpassword, newpassword } = req.body;
-    if (!oldpassword || !newpassword) {
-      return res.status(400).json({message: "Old password and new password are required"});
-    }
-    const user = await User.findOne({ id: req.params.id });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    const isMatch = await bcrypt.compare(oldpassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Old password is incorrect" });
-    }
-    user.password = newpassword;
-    await user.save();
-    res.status(200).json({ message: "Password reset successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
+
 
 //update profile
 router.put("/update/:id", auth, upload.single("profilePic"), async (req, res) => {
-    if (req.user.role !== 'user' && req.user.id !== req.params.id) {
+    if (req.user.id !== req.params.id) {
         return res.status(403).json({ message: "You can update only your profile" });
     }
     try {
@@ -164,14 +164,12 @@ router.put("/update/:id", auth, upload.single("profilePic"), async (req, res) =>
             updates.profilePic = `/uploads/${req.file.filename}`;
         }
         if (updates.password) {
-            const hashedPassword = await bcrypt.hash(updates.password, 10);
-            updates.password = hashedPassword;
+            return res.status(400).json({ message: "Password cannot be updated here go to reset instead" });
         }
-        const updatedUser = await User.findOneAndUpdate({ id: userId }, updates, {
+        const updatedUser = await User.findByIdAndUpdate(userId, updates, {
             new: true,
             runValidators: true
-        }
-        );
+        });
         if (!updatedUser) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -189,23 +187,22 @@ router.put("/update/:id", auth, upload.single("profilePic"), async (req, res) =>
 
 //deleting user
 router.delete("/delete/:id", auth, async (req, res) => {
-    if (req.user.role === 'user' && req.user.id !== req.params.id) {
+    if (req.user.role === "user" && req.user.id !== req.params.id) {
         return res.status(403).json({ message: "You can delete only your own profile" });
     }
+
     try {
-        const userId = req.params.id;
-        if (!userId) {
-            return res.status(400).json({ message: "User ID is required" });
-        }
-        const deletedUser = await User.findOneAndDelete({ id: userId });
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
         if (!deletedUser) {
             return res.status(404).json({ message: "User not found" });
         }
+
         res.status(200).json({ message: "User deleted successfully" });
     } catch (err) {
-        res.status(500).json({ message: "Internal server error" + err.message });
+        res.status(500).json({ error: err.message });
     }
 });
+
 
 //follow user
 router.put("/follow/:id", auth, async (req, res) => {
@@ -218,16 +215,16 @@ router.put("/follow/:id", auth, async (req, res) => {
     try {
         const userIdToFollow = req.params.id;
         const currentUserId = req.user.id;
-        const userToFollow = await User.findOne({ id: userIdToFollow });
-        const currentUser = await User.findOne({ id: currentUserId });
+        const userToFollow = await User.findById(userIdToFollow);
+        const currentUser = await User.findById(currentUserId);
         if (!userToFollow) {
             return res.status(404).json({ message: "User not found" });
         }
         if (currentUser.following.includes(userIdToFollow)) {
             return res.status(400).json({ message: "You are already following this user" });
         }
-        await User.updateOne({ id: currentUserId }, { $push: { following: userIdToFollow } });
-        await User.updateOne({ id: userIdToFollow }, { $push: { followers: currentUserId } });
+        await User.findByIdAndUpdate(currentUserId, { $push: { following: userIdToFollow } });
+        await User.findByIdAndUpdate(userIdToFollow, { $push: { followers: currentUserId } });
         res.status(200).json({ message: "User followed successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -245,16 +242,16 @@ router.put("/unfollow/:id", auth, async (req, res) => {
     try {
         const userIdToUnfollow = req.params.id;
         const currentUserId = req.user.id;
-        const userToUnfollow = await User.findOne({ id: userIdToUnfollow });
-        const currentUser = await User.findOne({ id: currentUserId });
+        const userToUnfollow = await User.findById(userIdToUnfollow);
+        const currentUser = await User.findById(currentUserId);
         if (!userToUnfollow) {
             return res.status(404).json({ message: "User not found" });
         }
         if (!currentUser.following.includes(userIdToUnfollow)) {
             return res.status(400).json({ message: "You are not following this user.. :)" });
         }
-        await User.updateOne({ id: currentUserId }, { $pull: { following: userIdToUnfollow } });
-        await User.updateOne({ id: userIdToUnfollow }, { $pull: { followers: currentUserId } });
+        await User.findByIdAndUpdate(currentUserId, { $pull: { following: userIdToUnfollow } });
+        await User.findByIdAndUpdate(userIdToUnfollow, { $pull: { followers: currentUserId } });
         res.status(200).json({ message: "user unfollowed successfully.. :)" });
     } catch (err) {
         res.status(500).json({ error: err.message });
