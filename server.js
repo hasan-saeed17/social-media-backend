@@ -16,8 +16,8 @@ const postRoutes = require('./routes/postRoutes')
 
 
 app.use('/api/users', userRoutes);
-app.use("/comment", commentRoute);
-app.use('/posts', postRoutes)
+app.use("/api/comment", commentRoute);
+app.use('/api/posts', postRoutes)
 
 
 app.listen(port, () => {
