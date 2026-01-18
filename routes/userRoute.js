@@ -139,7 +139,7 @@ router.put("/reset-password/:id", auth, async (req, res) => {
             return res.status(400).json({ message: "Old password incorrect" });
         }
 
-        user.password = newpassword; // pre-save hook hashes
+        user.password = newpassword; 
         await user.save();
 
         res.status(200).json({ message: "Password reset successfully" });

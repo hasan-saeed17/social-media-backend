@@ -9,7 +9,7 @@ const Comment = require('./../models/commentSchema')
 
 
 //create post
-router.post("/", auth, async (req, res) => {
+router.post("/create", auth, async (req, res) => {
 
     try {
 
@@ -44,7 +44,7 @@ router.post("/", auth, async (req, res) => {
 
 
 //get feed
-router.get('/', async (req, res) => {
+router.get('/get-feed', async (req, res) => {
 
     try {
 
@@ -118,7 +118,7 @@ router.get('/myPosts', auth, async (req, res) => {
 
 
 //update post
-router.put('/:postId', auth, async (req, res) => {
+router.put('/update/:postId', auth, async (req, res) => {
 
     try {
 
@@ -167,7 +167,7 @@ router.put('/:postId', auth, async (req, res) => {
 
 
 //delete post
-router.delete('/:postId', auth, async (req, res) => {
+router.delete('/delete/:postId', auth, async (req, res) => {
 
     try {
 
