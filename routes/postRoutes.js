@@ -4,34 +4,105 @@ const router = express.Router();
 const auth = require('./../auth');
 const Post = require('./../models/postSchema');
 const Comment = require('./../models/commentSchema')
+const User = require('./../models/userSchema')
 
+const multer = require('multer')
+const path = require('path')
+
+
+const storage = multer.diskStorage({
+    destination: function (req,file,cb) {
+        cb(null, "../uploads/posts");
+    },
+    filename: function (req,file,cb) {
+        cb(null, Date.now() + "-post-" + file.originalname);
+    }
+})
+
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Only image files allowed"), false);
+    }
+}
+
+const upload = multer({ storage: storage, fileFilter: fileFilter });
 
 
 
 //create post
-router.post("/create", auth, async (req, res) => {
+router.post("/create", auth, upload.single("image"), async (req, res) => {
 
     try {
 
         const { type, contentType, content } = req.body;
 
-        if (!type || !contentType || !content) {
+        if (!type || !contentType) {
             return res.status(400).json({ message: "All fields are required." })
         }
 
-        const post = new Post({
-            userId: req.user._id,
-            type,
-            content,
-            contentType
-        });
+        // validate post type
+        const validTypes = ["comedy", "sports", "fashion", "business", "tech"];
+        if (!validTypes.includes(type)) {
+            return res.status(400).json({ message: "Invalid post type." });
+        }
 
-        await post.save();
+        // TEXT POST
+        if (contentType === "text") {
 
-        res.status(201).json({
-            message: "Post created successfully",
-            data: post
-        });
+            if (!content) {
+                return res.status(400).json({ message: "Text content is required." });
+            }
+
+            const post = new Post({
+                userId: req.user._id,
+                type,
+                contentType: "text",
+                content
+            });
+
+            await post.save();
+
+            await User.findByIdAndUpdate(req.user._id, {
+                $push: { posts: post._id }
+            });
+
+            return res.status(201).json({
+                message: "Post created successfully",
+                data: post
+            });
+
+        } else if (contentType === "image") {
+
+            if (!req.file) {
+                return res.status(400).json({ message: "Image file is required." });
+            }
+
+            const imagePath = `/uploads/posts/${req.file.filename}`;
+
+            const post = new Post({
+                userId: req.user._id,
+                type,
+                contentType: "image",
+                content: imagePath
+            });
+
+            await post.save();
+
+            await User.findByIdAndUpdate(req.user._id, {
+                $push: { posts: post._id }
+            });
+            
+            return res.status(201).json({
+                message: "Post created successfully",
+                data: post
+            });
+
+        }
+         
+        return res.status(400).json({ message: "Invalid content type." });
 
 
     } catch (error) {
@@ -118,7 +189,7 @@ router.get('/myPosts', auth, async (req, res) => {
 
 
 //update post
-router.put('/update/:postId', auth, async (req, res) => {
+router.put('/update/:postId', auth, upload.single("image"), async (req, res) => {
 
     try {
 
@@ -140,15 +211,32 @@ router.put('/update/:postId', auth, async (req, res) => {
 
         const { type, contentType, content } = req.body;
 
+        const validTypes = ["comedy", "sports", "fashion", "business", "tech"];
+        if (type && !validTypes.includes(type)) {
+          return res.status(400).json({ message: "Invalid post type" });
+        }
         if (type) {
             post.type = type;
         }
-        if (contentType) {
-            post.contentType = contentType
+
+
+
+        // TEXT UPDATE
+        if (contentType === "text") {
+          if (content) {
+            post.contentType = contentType;
+            post.content = content;
+          }
         }
-        if (content) {
-            post.content = content
+
+        // IMAGE UPDATE (replace image)
+        if (contentType === "image") {
+          if (req.file) {
+            post.contentType = contentType; 
+            post.content = `/uploads/posts/${req.file.filename}`;
+          }
         }
+
 
         const updatedPost = await post.save();
 
@@ -186,6 +274,10 @@ router.delete('/delete/:postId', auth, async (req, res) => {
                 message: "You are not allowed to delete this post."
             });
         }
+
+        await User.findByIdAndUpdate(req.user._id, {
+          $pull: { posts: post._id }
+        });
 
         await Comment.deleteMany({ postId: post._id });
         await post.deleteOne();
