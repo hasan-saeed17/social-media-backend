@@ -11,8 +11,8 @@ router.post("/add", auth, async (req, res) => {
 
     const comment = new Comment({
       description,
-      postId,
-      userId: req.user.id.toString(), 
+      postId,             
+      userId: req.user.id, 
     });
 
     await comment.save();
@@ -26,10 +26,11 @@ router.post("/add", auth, async (req, res) => {
 // see coments on a post
 router.get("/post/:postId", auth, async (req, res) => {
   try {
-    const id = req.params.postId;
-    const comments = await Comment.find({ postId: id });
+    const comments = await Comment.find({
+      postId: req.params.postId,
+    });
 
-    if (comments.length === 0) {
+    if (!comments.length) {
       return res.status(404).json({ message: "No comments found!" });
     }
 
@@ -39,17 +40,18 @@ router.get("/post/:postId", auth, async (req, res) => {
   }
 });
 
+
 // edit comment
 router.put("/update/:id", auth, async (req, res) => {
   try {
-    const pId = req.params.id;
-    const comment = await Comment.findById(pId);
+    const comment = await Comment.findById(req.params.id);
 
     if (!comment) {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    if (comment.userId.toString() !== req.user.id) {
+    // ObjectId comparison MUST use .equals()
+    if (!comment.userId.equals(req.user.id)) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -66,14 +68,14 @@ router.put("/update/:id", auth, async (req, res) => {
 // del a comment
 router.delete("/delete/:id", auth, async (req, res) => {
   try {
-    const cId = req.params.id;
-    const comment = await Comment.findById(cId);
+    const comment = await Comment.findById(req.params.id);
 
     if (!comment) {
       return res.status(404).json({ message: "Comment not found" });
     }
+
     if (
-      comment.userId.toString() !== req.user.id &&
+      !comment.userId.equals(req.user.id) &&
       req.user.role !== "admin"
     ) {
       return res.status(403).json({ message: "Not authorized" });
@@ -89,21 +91,28 @@ router.delete("/delete/:id", auth, async (req, res) => {
 
 
 // like / unlike
-
 router.put("/like/:id", auth, async (req, res) => {
   try {
-    const { userId } = req.body;
-
     const comment = await Comment.findById(req.params.id);
 
-    if (!comment.likes.includes(userId)) {
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const userId = req.user.id;
+
+    const alreadyLiked = comment.likes.some(id =>
+      id.equals(userId)
+    );
+
+    if (!alreadyLiked) {
       comment.likes.push(userId);
     } else {
       comment.likes.pull(userId);
     }
 
     await comment.save();
-    res.json(comment);
+    res.status(200).json(comment);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
