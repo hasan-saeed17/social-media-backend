@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const port = 4000;
+const port = 3500;
 const db = require('./db.js');
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');

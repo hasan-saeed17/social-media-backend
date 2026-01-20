@@ -57,7 +57,7 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
             }
 
             const post = new Post({
-                userId: req.user._id,
+                userId: req.user.id,
                 type,
                 contentType: "text",
                 content
@@ -65,8 +65,8 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
 
             await post.save();
 
-            await User.findByIdAndUpdate(req.user._id, {
-                $push: { posts: post._id }
+            await User.findByIdAndUpdate(req.user.id, {
+                $push: { posts: post.id }
             });
 
             return res.status(201).json({
@@ -83,7 +83,7 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
             const imagePath = `/uploads/posts/${req.file.filename}`;
 
             const post = new Post({
-                userId: req.user._id,
+                userId: req.user.id,
                 type,
                 contentType: "image",
                 content: imagePath
@@ -91,8 +91,8 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
 
             await post.save();
 
-            await User.findByIdAndUpdate(req.user._id, {
-                $push: { posts: post._id }
+            await User.findByIdAndUpdate(req.user.id, {
+                $push: { posts: post.id }
             });
             
             return res.status(201).json({
@@ -107,7 +107,8 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            message: "Internal server error."
+            message: "Internal server error.",
+            error:error
         });
     }
 
