@@ -106,9 +106,9 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
 
 
     } catch (error) {
-        res.status(500).json({
-            message: "Internal server error.",
-            error:error
+  res.status(500).json({
+    message: error.message
+            
         });
     }
 
