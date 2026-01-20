@@ -17,7 +17,16 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Only image files allowed"), false);
+    }
+}
+
+const upload = multer({ storage: storage, fileFilter: fileFilter });
 
 //see all users
 router.get("/profiles/all", async (req, res) => {
@@ -72,7 +81,7 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
         }
         const newUser = new User({
             ...data,
-            profilePic: req.file ? `/uploads/${req.file.filename}` : null
+            profilePic: req.file ? `/uploads/pfp/${req.file.filename}` : null
         });
         await newUser.save();
         console.log("User registered");
@@ -105,7 +114,7 @@ router.post("/login", async (req, res) => {
         }
         const token = jwt.sign(payload, 'lalala1122');
         res.cookie('token', token, { httpOnly: true, secure: false });
-        res.json({ message: 'Login successful.' },payload);
+        res.json({ message: 'Login successful.' }, payload);
 
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
@@ -139,7 +148,7 @@ router.put("/reset-password/:id", auth, async (req, res) => {
             return res.status(400).json({ message: "Old password incorrect" });
         }
 
-        user.password = newpassword; 
+        user.password = newpassword;
         await user.save();
 
         res.status(200).json({ message: "Password reset successfully" });
