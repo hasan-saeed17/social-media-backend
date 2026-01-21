@@ -11,10 +11,10 @@ const path = require('path')
 
 
 const storage = multer.diskStorage({
-    destination: function (req,file,cb) {
+    destination: function (req, file, cb) {
         cb(null, path.join(__dirname, "../uploads/posts"));
     },
-    filename: function (req,file,cb) {
+    filename: function (req, file, cb) {
         cb(null, Date.now() + "-post-" + file.originalname);
     }
 })
@@ -94,20 +94,20 @@ router.post("/create", auth, upload.single("content"), async (req, res) => {
             await User.findByIdAndUpdate(req.user.id, {
                 $push: { posts: post.id }
             });
-            
+
             return res.status(201).json({
                 message: "Post created successfully",
                 data: post
             });
 
         }
-         
+
         return res.status(400).json({ message: "Invalid content type." });
 
 
     } catch (error) {
         res.status(500).json({
-            message: error.message            
+            message: error.message
         });
     }
 
@@ -119,7 +119,7 @@ router.get('/get-feed', async (req, res) => {
 
     try {
 
-        const posts = await Post.find().sort({ datePosted: -1 }).populate("userId", "username profilePic");
+        const posts = await Post.find().sort({ datePosted: -1 }).populate("userId");
 
         const feed = [];
 
@@ -127,7 +127,7 @@ router.get('/get-feed', async (req, res) => {
 
             const comments = await Comment.find({ postId: post._id })
                 .sort({ createdAt: -1 })
-                .populate("userId", "username profilePic")
+                .populate("userId")
 
             feed.push({
                 ...post.toObject(),
@@ -149,6 +149,33 @@ router.get('/get-feed', async (req, res) => {
 
 })
 
+//get posts by user id
+router.get('/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const posts = await Post.find({ userId })
+            .sort({ datePosted: -1 })
+            .populate("userId", "username")
+        const feed = []
+        for (const post of posts) {
+            const comments = await Comment.find({ postId: post._id })
+                .sort({ createdAt: -1 })
+                .populate("userId")
+            feed.push({
+                ...post.toObject(),
+                comments
+            });
+        }
+        res.status(200).json({
+            message: "User posts fetched successfully",
+            feed: feed
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Internal server error."
+        });
+    }
+})
 
 //get logged-in user posts
 router.get('/myPosts', auth, async (req, res) => {
@@ -213,7 +240,7 @@ router.put('/update/:postId', auth, upload.single("content"), async (req, res) =
 
         const validTypes = ["comedy", "sports", "fashion", "business", "tech"];
         if (type && !validTypes.includes(type)) {
-          return res.status(400).json({ message: "Invalid post type" });
+            return res.status(400).json({ message: "Invalid post type" });
         }
         if (type) {
             post.type = type;
@@ -223,18 +250,18 @@ router.put('/update/:postId', auth, upload.single("content"), async (req, res) =
 
         // TEXT UPDATE
         if (contentType === "text") {
-          if (content) {
-            post.contentType = contentType;
-            post.content = content;
-          }
+            if (content) {
+                post.contentType = contentType;
+                post.content = content;
+            }
         }
 
         // IMAGE UPDATE (replace image)
         if (contentType === "image") {
-          if (req.file) {
-            post.contentType = contentType; 
-            post.content = `/uploads/posts/${req.file.filename}`;
-          }
+            if (req.file) {
+                post.contentType = contentType;
+                post.content = `/uploads/posts/${req.file.filename}`;
+            }
         }
 
 
@@ -276,7 +303,7 @@ router.delete('/delete/:postId', auth, async (req, res) => {
         }
 
         await User.findByIdAndUpdate(req.user._id, {
-          $pull: { posts: post._id }
+            $pull: { posts: post._id }
         });
 
         await Comment.deleteMany({ postId: post._id });
