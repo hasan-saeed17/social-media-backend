@@ -12,7 +12,7 @@ const path = require('path')
 
 const storage = multer.diskStorage({
     destination: function (req,file,cb) {
-        cb(null, "../uploads/posts");
+        cb(null, path.join(__dirname, "../uploads/posts"));
     },
     filename: function (req,file,cb) {
         cb(null, Date.now() + "-post-" + file.originalname);
@@ -33,7 +33,7 @@ const upload = multer({ storage: storage, fileFilter: fileFilter });
 
 
 //create post
-router.post("/create", auth, upload.single("image"), async (req, res) => {
+router.post("/create", auth, upload.single("content"), async (req, res) => {
 
     try {
 
@@ -106,9 +106,8 @@ router.post("/create", auth, upload.single("image"), async (req, res) => {
 
 
     } catch (error) {
-  res.status(500).json({
-    message: error.message
-            
+        res.status(500).json({
+            message: error.message            
         });
     }
 
@@ -190,7 +189,7 @@ router.get('/myPosts', auth, async (req, res) => {
 
 
 //update post
-router.put('/update/:postId', auth, upload.single("image"), async (req, res) => {
+router.put('/update/:postId', auth, upload.single("content"), async (req, res) => {
 
     try {
 
