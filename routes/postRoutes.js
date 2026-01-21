@@ -119,7 +119,7 @@ router.get('/get-feed', async (req, res) => {
 
     try {
 
-        const posts = await Post.find().sort({ datePosted: -1 }).populate("userId");
+        const posts = await Post.find().sort({ datePosted: -1 }).populate("userId","username");
 
         const feed = [];
 
@@ -182,17 +182,17 @@ router.get('/myPosts', auth, async (req, res) => {
 
     try {
 
-        const posts = await Post.find({ userId: req.user._id })
+        const posts = await Post.find({ userId: req.user.id })
             .sort({ datePosted: -1 })
-            .populate("userId", "username profilePic")
+            .populate("userId", "username ")
 
         const feed = []
 
         for (const post of posts) {
 
-            const comments = await Comment.find({ postId: post._id })
+            const comments = await Comment.find({ postId: post.id })
                 .sort({ createdAt: -1 })
-                .populate("userId", "username profilePic")
+                .populate("userId", "username")
 
             feed.push({
                 ...post.toObject(),
@@ -296,17 +296,17 @@ router.delete('/delete/:postId', auth, async (req, res) => {
             })
         }
 
-        if (post.userId.toString() !== req.user._id.toString()) {
+        if (post.userId !== req.user.id) {
             return res.status(403).json({
                 message: "You are not allowed to delete this post."
             });
         }
 
-        await User.findByIdAndUpdate(req.user._id, {
+        await User.findByIdAndUpdate(req.user.id, {
             $pull: { posts: post._id }
         });
 
-        await Comment.deleteMany({ postId: post._id });
+        await Comment.deleteMany({ postId: post.id });
         await post.deleteOne();
 
         res.status(200).json({
@@ -315,7 +315,7 @@ router.delete('/delete/:postId', auth, async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            message: "Internal server error."
+            message: "Internal server error."+error.message
         })
     }
 
@@ -340,7 +340,7 @@ router.post('/:postId/like', auth, async (req, res) => {
 
         for (let i = 0; i < post.likes.length; i++) {
 
-            if (post.likes[i].toString() === req.user._id.toString()) {
+            if (post.likes[i] === req.user.id) {
                 alreadyLiked = true;
                 break;
             }
@@ -351,7 +351,7 @@ router.post('/:postId/like', auth, async (req, res) => {
         }
 
 
-        post.likes.push(req.user._id);
+        post.likes.push(req.user.id);
         const updatedPost = await post.save();
 
         res.status(200).json({
@@ -385,13 +385,13 @@ router.post('/:postId/unlike', auth, async (req, res) => {
         let likeIndex = -1;
 
         for (let i = 0; i < post.likes.length; i++) {
-            if (post.likes[i].toString() === req.user._id.toString()) {
+            if (post.likes[i] === req.user.id) {
                 likeIndex = i;
                 break;
             }
         }
 
-        if (likeIndex === -1) {
+        if (!likeIndex === -1) {
             return res.status(400).json({ message: "Post not liked yet" })
         }
 
