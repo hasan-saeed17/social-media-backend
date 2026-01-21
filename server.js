@@ -13,7 +13,7 @@ const userRoutes = require('./routes/userRoute');
 const commentRoute = require('./routes/commentRoute.js')
 const postRoutes = require('./routes/postRoutes')
 
-
+//testing
 
 app.use('/api/users', userRoutes);
 app.use("/api/comment", commentRoute);
